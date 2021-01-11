@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Temporary dumps created by tests
+tmp.bz2
+
 # C extensions
 *.so
 

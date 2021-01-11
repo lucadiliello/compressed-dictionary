@@ -8,7 +8,20 @@ The `CompressedDictionary` is useful when you have a large dictionary where valu
 The `CompressedDictionary` has some contraints:
 - `keys` must be integers (max key value is `2^32`). You could also use strings or larger integers, but some functionalities may not work out-of-the-box.
 - `values` must be json serializable. This means that values can be integers, booleans, strings, floats and any combination of this types grouped in lists or dictionaries. You can test if a value is json serializable with `json.dumps(object)`.
- 
+
+
+## Install
+
+Install with:
+```bash
+pip install git+https://github.com/lucadiliello/compressed-dictionary.git --upgrade
+```
+
+Remove with:
+```bash
+pip uninstall compressed-dictionary -y
+```
+
 
 ## How to use the `CompressedDictionary`
 
