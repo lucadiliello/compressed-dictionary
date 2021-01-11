@@ -1,0 +1,1 @@
+from compressed_dictionary.compressed_dictionary import CompressedDictionary
