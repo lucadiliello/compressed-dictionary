@@ -32,7 +32,7 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--input-files', type=str, nargs='+', required=True, help="Input dictionaries to merge")
     parser.add_argument('-o', '--output-file', type=str, required=True, help="Output file resulting merged dictionary")
 
-    parser.add_argument('--compression', type=str, default='bz2',
+    parser.add_argument('--compression', type=str, default=None,
                         choices=list(CompressedDictionary.ALLOWED_COMPRESSIONS.keys()) + [None],
                         help="Compression format of input dictionary and output splits")
     parser.add_argument('--shift_keys', action="store_true", help="Whether to reset keys")
