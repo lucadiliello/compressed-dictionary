@@ -126,7 +126,7 @@ class CompressedDictionary(MutableMapping):
                 self.write_key_value_line(k, self._content[k], fo)
 
     @classmethod
-    def load(cls, filepath: str, compression: str = 'bz2'):
+    def load(cls, filepath: str, compression: str = 'bz2', limit: int = None):
         r"""
         Create an instance by decompressing a dump from disk. First retrieve the
         object internal parameters from the first line of the compressed file,
@@ -150,7 +150,7 @@ class CompressedDictionary(MutableMapping):
                     f"`compression` argument not in allowed values: {cls.ALLOWED_COMPRESSIONS.keys()}"
                 )
             open_fn = cls.ALLOWED_COMPRESSIONS[compression].open
-        
+
         with open_fn(filepath, "rb") as fi:
             # read and set arguments
             arguments = json.loads(cls.bytes2str(cls.read_line(fi)))
@@ -158,12 +158,14 @@ class CompressedDictionary(MutableMapping):
                 setattr(res, key, value)
 
             # read key-value pairs
+            read_lines = 0
             while True:
                 line = cls.read_key_value_line(fi)
-                if line is None:
+                if line is None or (limit is not None and read_lines >= limit):
                     break
                 key, value = line
                 res._content[key] = value
+                read_lines += 1
 
         return res
 
@@ -213,7 +215,7 @@ class CompressedDictionary(MutableMapping):
 
     def __add_already_compresses_value__(self, key: int, value: bytes):
         self._content[key] = value
-    
+
     def __get_without_decompress_value__(self, key: int):
         return self._content[key]
 
@@ -333,7 +335,7 @@ class CompressedDictionary(MutableMapping):
         Return:
             a new dictionary with values of both `self` and `other`
         """
-        
+
         if self.compression != other.compression:
             raise ValueError(
                 f"`other` must use the same `compression` algorithm as `self`"
