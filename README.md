@@ -78,4 +78,4 @@ Traceback (most recent call last):
 StopIteration
 ```
 
-The documentation for each method can be found in `src/compressed_dictionary.py`.
+The documentation for each method can be found in `compressed_dictionary/compressed_dictionary.py`.
