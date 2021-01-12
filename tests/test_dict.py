@@ -1,5 +1,6 @@
 import os
 import random
+import shutil
 import pytest
 from compressed_dictionary.compressed_dictionary import CompressedDictionary
 
@@ -63,7 +64,7 @@ def test_save_reload(iteration):
     assert a == dd
 
     dd = dd.merge(dd, shift_keys=True)
-    dd.import_from_other(dd, shift_keys=True)
+    dd.merge_(dd, shift_keys=True)
 
     os.remove('tmp.bz2')
 
@@ -75,10 +76,40 @@ def test_save_reload(iteration):
     ],
 )
 # test shuffle and splitting
-def test_shuffle_and_splittint(iteration):
+def test_shuffle_and_splitting(iteration):
 
     dd = CompressedDictionary()
-    dd.update(((i, i) for i in range(20)))
+    dd.update(((i, i) for i in range(50)))
 
     res = dd.split(parts=random.randint(1, 5), reset_keys=False, drop_last=False, shuffle=False)
     assert CompressedDictionary.combine(*list(res)) == dd
+
+
+# testing save/reload
+@pytest.mark.parametrize(
+    ["iteration"], [
+        [i] for i in range(100)
+    ],
+)
+# test shuffle and splitting
+def test_combination_on_disk(iteration):
+
+    dd = CompressedDictionary()
+    dd.update(((i, i) for i in range(50)))
+
+    os.makedirs("tmp")
+
+    filenames = []
+    res = dd.split(parts=random.randint(1, 5), reset_keys=False, drop_last=False, shuffle=False)
+    for i, r in enumerate(res):
+        name = f"split-{i}.bz2"
+        r.dump(os.path.join("tmp", name))
+        filenames.append(name)
+    
+    filepaths = [os.path.join("tmp", f) for f in filenames]
+    CompressedDictionary.combine_on_disk(os.path.join("tmp", "result.bz2"), *filepaths, shift_keys=False)
+    
+    a = CompressedDictionary.load(os.path.join("tmp", "result.bz2"))
+    shutil.rmtree("tmp")
+
+    assert a == dd

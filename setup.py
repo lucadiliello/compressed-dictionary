@@ -23,7 +23,7 @@ setuptools.setup(
     author_email='luca.diliello@unitn.it',
     license='GNU v2',
     packages=setuptools.find_packages(),
-    install_requires=[],
+    install_requires=['tqdm'],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU v2 License",

@@ -47,9 +47,10 @@ class CompressedDictionary(MutableMapping):
         Args:
             compression: a string representing the compression algorithm to use on values and for the dump.
         """
+
         if not compression in self.ALLOWED_COMPRESSIONS:
             raise ValueError(
-                f"`compression` argument not in allowed values: {self.ALLOWED_COMPRESSIONS}"
+                f"`compression` argument not in allowed values: {self.ALLOWED_COMPRESSIONS.keys()}"
             )
         self.compression = compression
         self._content = dict()
@@ -91,16 +92,27 @@ class CompressedDictionary(MutableMapping):
         key, value = unpack(header, line)
         return (key, value)
 
-    def dump(self, filepath: str):
+    def dump(self, filepath: str, compression: str = 'bz2'):
         r"""
         Dump compressed_dictionary to file.
         Start by collecting the attributes that should be saved and then
         move the whole content of the dictionary to the file, separating
         key and values with a tab and different entries with a new-line.
         This is a safe op because json will escape possible tabs and newlines
-        contained in the values of the dictionary.
+        contained in the values of the dictionary. Comrpession algorithm may be different from
+        the one used for key and values.
         """
-        with self.ALLOWED_COMPRESSIONS[self.compression].open(filepath, "wb") as fo:
+
+        if compression is None:
+            open_fn = open
+        else:
+            if not compression in self.ALLOWED_COMPRESSIONS:
+                raise ValueError(
+                    f"`compression` argument not in allowed values: {self.ALLOWED_COMPRESSIONS.keys()}"
+                )
+            open_fn = self.ALLOWED_COMPRESSIONS[compression].open
+
+        with open_fn(filepath, "wb") as fo:
             # write arguments
             specs_to_dump = dict()
             for key in self.ATTRIBUTES_TO_DUMP:
@@ -121,16 +133,22 @@ class CompressedDictionary(MutableMapping):
         then start filling the internal dictionary without doing compression/decompression
         again.
         """
-        assert os.path.isfile(filepath), (
-            f"`filepath` {filepath} is not a file"
-        )
+
+        if not os.path.isfile(filepath):
+            raise ValueError(
+                f"`filepath` {filepath} is not a file"
+            )
 
         res = CompressedDictionary()
 
-        # file might be already decompressed
+        # file might not be compressed
         if compression is None:
             open_fn = open
         else:
+            if not compression in cls.ALLOWED_COMPRESSIONS:
+                raise ValueError(
+                    f"`compression` argument not in allowed values: {cls.ALLOWED_COMPRESSIONS.keys()}"
+                )
             open_fn = cls.ALLOWED_COMPRESSIONS[compression].open
 
         with open_fn(filepath, "rb") as fi:
@@ -217,8 +235,80 @@ class CompressedDictionary(MutableMapping):
         """
         return super().__eq__(o) and (self.compression == o.compression)
 
+    @classmethod
+    def combine_on_disk(cls, destination: str, *dictionaries_files, compression: str = 'bz2', shift_keys: bool = True):
+        r"""
+        Combine together multiple dictionary dumps using the same compression algorithm.
+        This method will return write to the `destination` file.
+        """
+
+        if not dictionaries_files:
+            raise ValueError(
+                "`combine_on_disk` must be called with at least a dictionary"
+            )
+
+        if compression is None:
+            open_fn = open
+        else:
+            if not compression in cls.ALLOWED_COMPRESSIONS:
+                raise ValueError(
+                    f"`compression` argument not in allowed values: {cls.ALLOWED_COMPRESSIONS.keys()}"
+                )
+            open_fn = cls.ALLOWED_COMPRESSIONS[compression].open
+
+        # read first file to load encoding info
+        with open_fn(dictionaries_files[0], "rb") as fi:
+            # read arguments
+            arguments = json.loads(cls.bytes2str(cls.read_line(fi)))
+
+        # assert all files use the same compression algorithm
+        for filename in dictionaries_files:
+            with open_fn(filename, "rb") as fi:
+                # read arguments
+                arguments_2 = json.loads(cls.bytes2str(cls.read_line(fi)))
+                if arguments_2['compression'] != arguments['compression']:
+                    raise ValueError(
+                        f"All input files must use the same internal compression algorithm"
+                    )
+
+        with open_fn(destination, "wb") as fo:
+            # write arguments
+            cls.write_line(cls.str2bytes(json.dumps(arguments)), fo)
+
+            new_key = 0
+            res_keys = set()
+
+            for filename in dictionaries_files:
+                # write key-value pairs for each input filename
+                with open_fn(filename, "rb") as fi:
+                    # read arguments
+                    _ = json.loads(cls.bytes2str(cls.read_line(fi)))
+
+                    # copy input to output
+                    while True:
+
+                        line = cls.read_key_value_line(fi)
+                        if line is None:
+                            break
+                        key, value = line
+
+                        # if keys are shifted, use generated incrementary new key
+                        if shift_keys:
+                            cls.write_key_value_line(new_key, value, fo)
+                            res_keys.add(new_key)
+                            new_key += 1
+
+                        # assert new key is not already writted to output
+                        else:
+                            if key in res_keys:
+                                raise ValueError(
+                                    f"duplicated key detected. Either use `shift_keys=True` or combine dictionaries with no common key"
+                                )
+                            cls.write_key_value_line(key, value, fo)
+                            res_keys.add(key)
+
     @staticmethod
-    def combine(*dictionaries):
+    def combine(*dictionaries, shift_keys: bool = True):
         r"""
         Combine together multiple dictionaries using the same compression algorithm.
         This method will return a new CompressedDictionay object but values will not be
@@ -232,10 +322,10 @@ class CompressedDictionary(MutableMapping):
 
         res = dictionaries[0]
         for d in dictionaries[1:]:
-            res.import_from_other(d)
+            res.merge_(d, shift_keys=shift_keys)
         return res
 
-    def merge(self, other, shift_keys=True):
+    def merge(self, other, shift_keys: bool = True):
         r"""
         Merge another dictionary with this one. If `shift_keys` is True,
         duplicated keys will be shifter in `other` to free positions. Otherwise,
@@ -252,29 +342,40 @@ class CompressedDictionary(MutableMapping):
             )
 
         res = CompressedDictionary()
-        for key in self.keys():
-            res.__add_already_compresses_value__(key, self.__get_without_decompress_value__(key))
+        new_key = 0
 
+        # add keys from self
+        for key in self.keys():
+            if shift_keys:
+                res.__add_already_compresses_value__(new_key, self.__get_without_decompress_value__(key))
+                new_key += 1
+            else:
+                res.__add_already_compresses_value__(key, self.__get_without_decompress_value__(key))
+
+        # add keys from other
         for key in other.keys():
-            if key in res:
-                if shift_keys:
-                    res.__add_already_compresses_value__(len(res), other.__get_without_decompress_value__(key))
-                else:
+            if shift_keys:
+                res.__add_already_compresses_value__(new_key, other.__get_without_decompress_value__(key))
+                new_key += 1
+            else:
+                if key in res:
                     raise ValueError(
                         f"There is a common key {key} between `self` and `other`"
                     )
-            else:
-                res.__add_already_compresses_value__(key, other.__get_without_decompress_value__(key))
+                else:
+                    res.__add_already_compresses_value__(key, other.__get_without_decompress_value__(key))
 
         return res
 
-    def import_from_other(self, other, shift_keys=True):
+    def merge_(self, other, shift_keys: bool = True):
         r"""
         Merge another dictionary into this one. If `shift_keys` is True,
         duplicated keys will be shifter in `other` to free positions. Otherwise,
-        an error is raised. This method is similar to `update` but it takes in input
-        another CompressedDictionary instead of a simple dict.
+        an error is raised. This method is similar to `merge` but is in-place.
         Dictionaries must use the same `compression` algorithm.
+
+        Return:
+            None
         """
 
         if self.compression != other.compression:
@@ -282,16 +383,22 @@ class CompressedDictionary(MutableMapping):
                 f"`other` must use the same `compression` algorithm as `self`"
             )
 
+        # start by filling holes in the keys list
+        free_keys = set(range(max(self.keys()) + 1)) - set(self.keys())
+
         for key in list(other.keys()):
-            if key in self:
-                if shift_keys:
-                    self.__add_already_compresses_value__(len(self), other.__get_without_decompress_value__(key))
+            if shift_keys:
+                if free_keys:
+                    self.__add_already_compresses_value__(free_keys.pop(), other.__get_without_decompress_value__(key))
                 else:
+                    self.__add_already_compresses_value__(len(self), other.__get_without_decompress_value__(key))
+            else:
+                if key in self:
                     raise ValueError(
                         f"There is a common key {key} between `self` and `other`"
                     )
-            else:
-                self.__add_already_compresses_value__(key, other.__get_without_decompress_value__(key))
+                else:
+                    self.__add_already_compresses_value__(key, other.__get_without_decompress_value__(key))
 
     def get_values_size(self): 
         r"""
