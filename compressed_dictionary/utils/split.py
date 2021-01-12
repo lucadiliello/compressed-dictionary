@@ -63,7 +63,7 @@ if __name__ == '__main__':
     parser.add_argument('--drop_last', action="store_true", help="Input dictionary to split")
     parser.add_argument('--reset_keys', action="store_true", help="Input dictionary to split")
     parser.add_argument('--shuffle', action="store_true", help="Input dictionary to split")
-    parser.add_argument('--compression', type=str, default='bz2',
+    parser.add_argument('--compression', type=str, default=None,
                         choices=list(CompressedDictionary.ALLOWED_COMPRESSIONS.keys()) + [None],
                         help="Compression format of input dictionary and output splits")
     parser.add_argument('--limit', type=int, default=None, required=False,
