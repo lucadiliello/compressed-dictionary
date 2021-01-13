@@ -59,9 +59,9 @@ if __name__ == '__main__':
     parser.add_argument('-i', '--input-file', type=str, required=True, help="Input dictionary to split")
     parser.add_argument('-o', '--output-folder', type=str, required=True, help="Output folder in which splits will be put")
     parser.add_argument('--parts', type=int, required=False, default=None, help="Input dictionary to split")
-    parser.add_argument('--parts_length', type=int, required=False, default=None, help="Input dictionary to split")
-    parser.add_argument('--drop_last', action="store_true", help="Input dictionary to split")
-    parser.add_argument('--reset_keys', action="store_true", help="Input dictionary to split")
+    parser.add_argument('--parts-length', type=int, required=False, default=None, help="Input dictionary to split")
+    parser.add_argument('--drop-last', action="store_true", help="Input dictionary to split")
+    parser.add_argument('--reset-keys', action="store_true", help="Input dictionary to split")
     parser.add_argument('--shuffle', action="store_true", help="Input dictionary to split")
     parser.add_argument('--compression', type=str, default=None,
                         choices=list(CompressedDictionary.ALLOWED_COMPRESSIONS.keys()) + [None],

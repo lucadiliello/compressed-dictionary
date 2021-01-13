@@ -236,7 +236,7 @@ class CompressedDictionary(MutableMapping):
         return super().__eq__(o) and (self.compression == o.compression)
 
     @classmethod
-    def combine_on_disk(cls, destination: str, *dictionaries_files, compression: str = 'bz2', shift_keys: bool = True):
+    def combine_on_disk(cls, destination: str, *dictionaries_files, compression: str = 'bz2', reset_keys: bool = True):
         r"""
         Combine together multiple dictionary dumps using the same compression algorithm.
         This method will return write to the `destination` file.
@@ -293,7 +293,7 @@ class CompressedDictionary(MutableMapping):
                         key, value = line
 
                         # if keys are shifted, use generated incrementary new key
-                        if shift_keys:
+                        if reset_keys:
                             cls.write_key_value_line(new_key, value, fo)
                             res_keys.add(new_key)
                             new_key += 1
@@ -302,13 +302,13 @@ class CompressedDictionary(MutableMapping):
                         else:
                             if key in res_keys:
                                 raise ValueError(
-                                    f"duplicated key detected. Either use `shift_keys=True` or combine dictionaries with no common key"
+                                    f"duplicated key detected. Either use `reset_keys=True` or combine dictionaries with no common key"
                                 )
                             cls.write_key_value_line(key, value, fo)
                             res_keys.add(key)
 
     @staticmethod
-    def combine(*dictionaries, shift_keys: bool = True):
+    def combine(*dictionaries, reset_keys: bool = True):
         r"""
         Combine together multiple dictionaries using the same compression algorithm.
         This method will return a new CompressedDictionay object but values will not be
@@ -322,12 +322,12 @@ class CompressedDictionary(MutableMapping):
 
         res = dictionaries[0]
         for d in dictionaries[1:]:
-            res.merge_(d, shift_keys=shift_keys)
+            res.merge_(d, reset_keys=reset_keys)
         return res
 
-    def merge(self, other, shift_keys: bool = True):
+    def merge(self, other, reset_keys: bool = True):
         r"""
-        Merge another dictionary with this one. If `shift_keys` is True,
+        Merge another dictionary with this one. If `reset_keys` is True,
         duplicated keys will be shifter in `other` to free positions. Otherwise,
         an error is raised.
         Dictionaries must use the same `compression` algorithm.
@@ -346,7 +346,7 @@ class CompressedDictionary(MutableMapping):
 
         # add keys from self
         for key in self.keys():
-            if shift_keys:
+            if reset_keys:
                 res.__add_already_compresses_value__(new_key, self.__get_without_decompress_value__(key))
                 new_key += 1
             else:
@@ -354,7 +354,7 @@ class CompressedDictionary(MutableMapping):
 
         # add keys from other
         for key in other.keys():
-            if shift_keys:
+            if reset_keys:
                 res.__add_already_compresses_value__(new_key, other.__get_without_decompress_value__(key))
                 new_key += 1
             else:
@@ -367,9 +367,9 @@ class CompressedDictionary(MutableMapping):
 
         return res
 
-    def merge_(self, other, shift_keys: bool = True):
+    def merge_(self, other, reset_keys: bool = True):
         r"""
-        Merge another dictionary into this one. If `shift_keys` is True,
+        Merge another dictionary into this one. If `reset_keys` is True,
         duplicated keys will be shifter in `other` to free positions. Otherwise,
         an error is raised. This method is similar to `merge` but is in-place.
         Dictionaries must use the same `compression` algorithm.
@@ -387,7 +387,7 @@ class CompressedDictionary(MutableMapping):
         free_keys = set(range(max(self.keys()) + 1)) - set(self.keys())
 
         for key in list(other.keys()):
-            if shift_keys:
+            if reset_keys:
                 if free_keys:
                     self.__add_already_compresses_value__(free_keys.pop(), other.__get_without_decompress_value__(key))
                 else:
@@ -412,22 +412,6 @@ class CompressedDictionary(MutableMapping):
     def get_keys_size(self): 
         r""" Return total keys size. """
         return sum(sys.getsizeof(key) for key in self.keys())
-
-    def shuffle(self):
-        r"""
-        In-place shuffling of values.
-        After the shuffling, each key will have a different value chosen randomly among
-        the others. This is a permutation, no value is deleted or duplicated.
-        """
-        shuffled_keys = list(self.keys())
-        random.shuffle(shuffled_keys)
-        self._tmp_content = dict()
-
-        for k1, k2 in zip(self.keys(), shuffled_keys):
-            self._tmp_content[k1] = self._content[k2]
-
-        self._content = self._tmp_content
-        del self._tmp_content
 
     def split(
         self,
@@ -472,10 +456,10 @@ class CompressedDictionary(MutableMapping):
         if parts is None:
             parts = math.ceil(len(self) / parts_length)
 
-        if shuffle:
-            self.shuffle()
-
         all_keys = list(self.keys())
+        if shuffle:
+            random.shuffle(all_keys)
+
         k, m = divmod(len(all_keys), parts)
 
         split_keys = [all_keys[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(parts)]

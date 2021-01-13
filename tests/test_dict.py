@@ -63,8 +63,8 @@ def test_save_reload(iteration):
 
     assert a == dd
 
-    dd = dd.merge(dd, shift_keys=True)
-    dd.merge_(dd, shift_keys=True)
+    dd = dd.merge(dd, reset_keys=True)
+    dd.merge_(dd, reset_keys=True)
 
     os.remove('tmp.bz2')
 
@@ -107,7 +107,7 @@ def test_combination_on_disk(iteration):
         filenames.append(name)
     
     filepaths = [os.path.join("tmp", f) for f in filenames]
-    CompressedDictionary.combine_on_disk(os.path.join("tmp", "result.bz2"), *filepaths, shift_keys=False)
+    CompressedDictionary.combine_on_disk(os.path.join("tmp", "result.bz2"), *filepaths, reset_keys=False)
     
     a = CompressedDictionary.load(os.path.join("tmp", "result.bz2"))
     shutil.rmtree("tmp")
