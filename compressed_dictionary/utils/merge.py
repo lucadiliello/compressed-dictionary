@@ -21,7 +21,7 @@ def main(args):
     )
 
     logging.info("Merging input dictionaries into single file")
-    CompressedDictionary.combine_on_disk(args.output_file, *args.input_files, compression=args.compression, shift_keys=args.shift_keys)
+    CompressedDictionary.combine_on_disk(args.output_file, *args.input_files, compression=args.compression, reset_keys=args.reset_keys)
     logging.info("Done")
 
 
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     parser.add_argument('--compression', type=str, default=None,
                         choices=list(CompressedDictionary.ALLOWED_COMPRESSIONS.keys()) + [None],
                         help="Compression format of input dictionary and output splits")
-    parser.add_argument('--shift_keys', action="store_true", help="Whether to reset keys")
+    parser.add_argument('--reset-keys', action="store_true", help="Whether to reset keys")
 
     args = parser.parse_args()
 
