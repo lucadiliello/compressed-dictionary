@@ -32,9 +32,9 @@ A `CompressedDictionary` is a python dictionary with some enhancements under the
 >>>
 >>> d = CompressedDictionary()
 >>> # OR
->>> d = CompressedDictionary.load("/path/to/file.bz2")
+>>> d = CompressedDictionary.load("/path/to/file.cd")
 >>> # OR
->>> d = CompressedDictionary.load("/path/to/file.xz", compression="xz")
+>>> d = CompressedDictionary.load("/path/to/file.cd")
 >>>
 >>> d[0] = {'value_1': [1, 2, 3, 4], 'value_2': [1.0, 1.0, 1.0, 1.0], 'value_3': ["hi", "I", "am", "Luca"], 'value_4': [True, False, True, True]}
 >>>
@@ -61,7 +61,7 @@ A `CompressedDictionary` is a python dictionary with some enhancements under the
 b"3hbwuchbufbou&RFYUVGBKYU6T76\x00\x00" # the compressed byte array corresponding to the d[0] value
 >>>
 >>> # save the dict to disk with a second level of compression
->>> d.dump("/path/to/new/dump.bz2") # no compression argument. the compression is the same used for values.
+>>> d.dump("/path/to/new/dump.cd") # no compression argument. the compression is the same used for values.
 >>>
 >>> # split the dict in a set of smaller ones
 >>> d.update((i, d[0]) for i in range(5))
