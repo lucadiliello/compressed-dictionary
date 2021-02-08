@@ -1,7 +1,5 @@
 import os
-import math
 import logging
-from tqdm import tqdm
 from argparse import ArgumentParser
 
 from compressed_dictionary import CompressedDictionary
@@ -34,7 +32,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--compression', type=str, default=None,
                         choices=list(CompressedDictionary.ALLOWED_COMPRESSIONS.keys()) + [None],
-                        help="Compression format of input dictionary and output splits")
+                        help="Compression method of output dictionary")
     parser.add_argument('--reset-keys', action="store_true", help="Whether to reset keys")
 
     args = parser.parse_args()

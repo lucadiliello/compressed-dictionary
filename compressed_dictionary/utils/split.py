@@ -24,7 +24,7 @@ def main(args):
     )
 
     logging.info("Loading input dictionary")
-    dictionary = CompressedDictionary.load(args.input_file, compression=args.compression, limit=args.limit)
+    dictionary = CompressedDictionary.load(args.input_file, limit=args.limit)
     os.makedirs(args.output_folder)
 
     logging.info("Splitting")
@@ -43,10 +43,9 @@ def main(args):
         )
     )
     for i, split_dict in tqdm(enumerate(splits_iterator), desc="Splitting", total=total):
-        name = f"{os.path.basename(args.input_file).split('.')[0]}-split-{i}.{args.compression}"
+        name = f"{os.path.basename(args.input_file).split('.')[0]}-split-{i}"
         split_dict.dump(
             os.path.join(args.output_folder, name),
-            compression=args.compression
         )
 
     logging.info("Done")
@@ -63,9 +62,6 @@ if __name__ == '__main__':
     parser.add_argument('--drop-last', action="store_true", help="Input dictionary to split")
     parser.add_argument('--reset-keys', action="store_true", help="Input dictionary to split")
     parser.add_argument('--shuffle', action="store_true", help="Input dictionary to split")
-    parser.add_argument('--compression', type=str, default=None,
-                        choices=list(CompressedDictionary.ALLOWED_COMPRESSIONS.keys()) + [None],
-                        help="Compression format of input dictionary and output splits")
     parser.add_argument('--limit', type=int, default=None, required=False,
                         help="Read only a limited number of key-value pairs from the input dict")
 
