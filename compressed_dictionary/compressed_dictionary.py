@@ -92,14 +92,14 @@ class CompressedDictionary(MutableMapping):
         key, value = unpack(header, line)
         return (key, value)
 
-    def dump(self, filepath: str, compression: str = 'bz2'):
+    def dump(self, filepath: str, compression: str = 'bz2', limit: int = None):
         r"""
         Dump compressed_dictionary to file.
         Start by collecting the attributes that should be saved and then
         move the whole content of the dictionary to the file, separating
         key and values with a tab and different entries with a new-line.
         This is a safe op because json will escape possible tabs and newlines
-        contained in the values of the dictionary. Comrpession algorithm may be different from
+        contained in the values of the dictionary. Compression algorithm may be different from
         the one used for key and values.
         """
 
@@ -122,7 +122,9 @@ class CompressedDictionary(MutableMapping):
             self.write_line(args, fo)
 
             # write key-value pairs
-            for k in self.keys():
+            for i, k in enumerate(self.keys()):
+                if limit is not None and i >= limit:
+                    break
                 self.write_key_value_line(k, self._content[k], fo)
 
     @classmethod
