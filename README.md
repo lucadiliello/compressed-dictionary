@@ -79,3 +79,32 @@ StopIteration
 ```
 
 The documentation for each method can be found in `compressed_dictionary/compressed_dictionary.py`.
+
+
+## Utilities
+
+We provide some utilities to manage `compressed-dictionary`s from the command line.
+
+### Merge
+
+Merge two dictionaries into a third one:
+
+```bash
+python -m compressed_dictionary.utils.merge --input-files <input-dict-1> <input-dict-2> <...> --output-file <resulting-dict>
+```
+
+If dictionaries have common keys, you can re-create the key index from `0` to the sum of the lengths of the dicts by using `--reset-keys`.
+If you want the resulting dict to use a different compression algorithm use `--compression <xz|bz2|gzip>`.
+
+
+### Split
+
+Split a dictionary in many sub-dictionaries:
+
+```bash
+python -m compressed_dictionary.utils.split --input-files <input-dict> --output-folder <resulting-dicts-folder> --parts <number-of-parts>
+```
+
+This will create `<number-of-parts>` dictionaries into `<resulting-dicts-folder>`. If you want to specify the length of the splits you can use `--parts-length <splits-length>` instead of `--parts`. Use `--drop-last` if you don't want the last smaller dict when splitting.
+
+If you want to reset the keys in the new dictionaries, use `--reset-keys`. If you want to shuffle values before splitting, use `--shuffle`. Finally, if you want to read only a part of the input dictionary, use `--limit <number-of-key-value-pairs-to-read>`.
