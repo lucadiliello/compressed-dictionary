@@ -407,12 +407,12 @@ class CompressedDictionary(MutableMapping):
         Each bytes array has a fixed default memory usage plus 1 byte for each character
         """
         byte_header_size = sys.getsizeof(bytes())
-        lengths = sum(len(value) for value in self.values())
+        lengths = sum(len(value) for value in self._content.values())
         return byte_header_size * len(self) + lengths
 
     def get_keys_size(self): 
         r""" Return total keys size. """
-        return sum(sys.getsizeof(key) for key in self.keys())
+        return sum(sys.getsizeof(key) for key in self._content.keys())
 
     def split(
         self,
