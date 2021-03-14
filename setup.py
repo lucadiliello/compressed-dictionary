@@ -16,9 +16,10 @@ def get_version():
 setuptools.setup(
     name='compressed_dictionary',
     version=get_version(),
-    description='A dictionary which values are compressed to save memory.',
+    description='A dictionary which values are automatically compressed to save memory.',
     long_description=load_long_description(),
-    url='git@github.com:lucadiliello/compressed-dictionary.git',
+    long_description_content_type="text/markdown",
+    url='https://github.com/lucadiliello/compressed-dictionary.git',
     author='Luca Di Liello',
     author_email='luca.diliello@unitn.it',
     license='GNU v2',
@@ -26,7 +27,10 @@ setuptools.setup(
     install_requires=['tqdm'],
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: GNU v2 License",
+        "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
         "Operating System :: OS Independent",
+        "Development Status :: 4 - Beta",
+        "Natural Language :: English"
     ]
 )
+

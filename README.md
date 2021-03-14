@@ -7,34 +7,34 @@ The `CompressedDictionary` is useful when you have a large dictionary where valu
 
 The `CompressedDictionary` has some contraints:
 - `keys` must be integers (max key value is `2^32`). You could also use strings or larger integers, but some functionalities may not work out-of-the-box.
-- `values` must be json serializable. This means that values can be integers, booleans, strings, floats and any combination of this types grouped in lists or dictionaries. You can test if a value is json serializable with `json.dumps(object)`.
+- `values` must be `json` serializable. This means that values can be integers, booleans, strings, floats and any combination of this types grouped in lists or dictionaries. You can test if a value is json serializable with `json.dumps(object)`.
 
 
 ## Install
 
 Install with:
 ```bash
-pip install git+https://github.com/lucadiliello/compressed-dictionary.git --upgrade
+pip install compressed-dictionary
 ```
 
-Remove with:
+and remove with:
 ```bash
-pip uninstall compressed-dictionary -y
+pip uninstall compressed-dictionary
 ```
 
 
 ## How to use the `CompressedDictionary`
 
-A `CompressedDictionary` is a python dictionary with some enhancements under the hood. There are two layers of compression: all values of the dictionary are individually compressed and each dump is finally compressed on disk.
+A `CompressedDictionary` is a python dictionary with some enhancements under the hood. When assigning a value to a key, the value is automatically serialized and compressed. The same applies when a value is extracted with a key from the dictionary.
 
 ```python
 >>> from create_pretraining_dataset.utils import CompressedDictionary
 >>>
 >>> d = CompressedDictionary()
 >>> # OR
->>> d = CompressedDictionary.load("/path/to/file.cd")
+>>> d = CompressedDictionary.load("/path/to/file")
 >>> # OR
->>> d = CompressedDictionary.load("/path/to/file.cd")
+>>> d = CompressedDictionary.load("/path/to/file")
 >>>
 >>> d[0] = {'value_1': [1, 2, 3, 4], 'value_2': [1.0, 1.0, 1.0, 1.0], 'value_3': ["hi", "I", "am", "Luca"], 'value_4': [True, False, True, True]}
 >>>
@@ -45,6 +45,7 @@ A `CompressedDictionary` is a python dictionary with some enhancements under the
 >>>
 >>> for k in d.keys():
 >>>     # do something with d[k]
+>>>     print(k)
 >>> # OR
 >>> for k, value in d.items():
 >>>     print(k, value) # print millions of entries is not always a good idea...
@@ -60,12 +61,16 @@ A `CompressedDictionary` is a python dictionary with some enhancements under the
 >>> d._content[0]
 b"3hbwuchbufbou&RFYUVGBKYU6T76\x00\x00" # the compressed byte array corresponding to the d[0] value
 >>>
->>> # save the dict to disk with a second level of compression
->>> d.dump("/path/to/new/dump.cd") # no compression argument. the compression is the same used for values.
+>>> # save the dict to disk
+>>> d.dump("/path/to/new/dump.cd")
 >>>
 >>> # split the dict in a set of smaller ones
 >>> d.update((i, d[0]) for i in range(5))
->>> res = d.split(parts=2, reset_keys=True, drop_last=False, shuffle=True) # splits are returned as a generator
+>>> res = d.split(parts=2, reset_keys=True, drop_last=False, shuffle=True) 
+>>> # Notice: splits are returned as a generator
+>>> # Notice: reset_keys will ensure that each resulting split has keys from 0 to len(split)-1
+>>> # Notice: shuffle will shuffle keys (indexes) before splitting
+>>>
 >>> list(next(res).items())
 [(0, {'value_1': [1, 2, 3, 4], 'value_2': [1.0, 1.0, 1.0, 1.0], 'value_3': ["hi", "I", "am", "Luca"], 'value_4': [True, False, True, True]}), (1, {'value_1': [1, 2, 3, 4], 'value_2': [1.0, 1.0, 1.0, 1.0], 'value_3': ["hi", "I", "am", "Luca"], 'value_4': [True, False, True, True]}), (2, {'value_1': [1, 2, 3, 4], 'value_2': [1.0, 1.0, 1.0, 1.0], 'value_3': ["hi", "I", "am", "Luca"], 'value_4': [True, False, True, True]})]
 >>>
@@ -102,7 +107,7 @@ If you want the resulting dict to use a different compression algorithm use `--c
 Split a dictionary in many sub-dictionaries:
 
 ```bash
-python -m compressed_dictionary.utils.split --input-files <input-dict> --output-folder <resulting-dicts-folder> --parts <number-of-parts>
+python -m compressed_dictionary.utils.split --input-file <input-dict> --output-folder <resulting-dicts-folder> --parts <number-of-parts>
 ```
 
 This will create `<number-of-parts>` dictionaries into `<resulting-dicts-folder>`. If you want to specify the length of the splits you can use `--parts-length <splits-length>` instead of `--parts`. Use `--drop-last` if you don't want the last smaller dict when splitting.
